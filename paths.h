@@ -15,7 +15,17 @@ public:
     }
 
 
-    const auto begin() const
+    auto begin()
+    {
+        return paths_.begin();
+    }
+    auto end()
+    {
+        return paths_.end();
+    }
+
+
+    auto begin() const
     {
         return paths_.begin();
     }
@@ -23,7 +33,20 @@ public:
     {
         return paths_.end();
     }
+    auto size () const
+    {
+        return paths_.size();
+    }
 
+    std::size_t& operator[] ( const auto & arg  )
+    {
+        return paths_[arg];
+    }
+
+    const std::size_t& operator[] ( const auto & arg  ) const
+    {
+        return paths_[arg];
+    }
 private:
     std::vector<std::size_t> paths_;
 };

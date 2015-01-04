@@ -32,10 +32,12 @@ public:
         return points_.size();
     }
 
-    PointType operator[] ( const auto & arg  ) const
+    const PointType& operator[] ( const auto & arg  ) const
     {
         return points_[arg];
     }
+
+
 
     void push_back ( const auto & arg  )
     {

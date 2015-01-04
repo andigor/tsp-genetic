@@ -109,6 +109,8 @@ double calc_path_length( const PointsType & po, const PathsType & pa )
     return ret;
 }
 
+//merge shortest and longest
+
 template <class PointsType, class PathsType>
 auto shortest_path( const PointsType& po, const PathsType & pa  )
 {
@@ -128,7 +130,89 @@ auto shortest_path( const PointsType& po, const PathsType & pa  )
 }
 
 
+template <class PointsType, class PathsType>
+auto longest_path( const PointsType& po, const PathsType & pa  )
+{
+    double max_length = std::numeric_limits<double>::min();
 
+    assert(pa.size() > 0);
+    typename PathsType::const_iterator max_path_iter = pa.begin();
+
+    for ( auto iter = pa.begin(); iter != pa.end(); ++iter ) {
+        auto cur_length = calc_path_length( po, *iter );
+        if ( cur_length > max_length  ) {
+            max_length = cur_length;
+            max_path_iter = iter;
+        }
+    }
+    return *max_path_iter;
+}
+
+
+
+template <class PathType>
+auto simple_crossover( PathType p1, PathType p2 )
+{
+    assert( p1.size() == p2.size() );
+
+    const size_t size = p1.size() / 2;
+    size_t swaped_count = 0;
+    while (swaped_count < size) {
+        size_t val_pos = 0;
+        bool found = false;
+        for ( auto iter = p2.begin(); iter != p2.end(); ++iter ) {
+            if ( *iter == p1[swaped_count] ) {
+                found = true;
+                std::swap( p1[swaped_count], *iter );
+                ++swaped_count;
+                break;
+            }
+            ++val_pos;
+        }
+
+        assert ( found );
+    }
+
+    return std::make_pair(p1, p2);
+}
+
+template <class PathsType>
+PathsType crossover( PathsType ret  )
+{
+    std::reverse( ret.begin(), ret.end() );
+    auto size = ret.size() / 2;
+    for ( size_t i = 0; i<size; ++i ) {
+        std::tie( ret[i], ret[i+size] ) = simple_crossover( ret[i] , ret[i + size] );
+    }
+    return ret;
+}
+
+
+
+template <class PointsType, class PathsType>
+PathsType fitness( const PointsType& po, const PathsType& pa )
+{
+    PathsType ret;
+
+    srand(321);
+
+    while ( ret.size() < pa.size() ) {
+        auto p1 = pa[ rand() % pa.size() ];
+        auto p2 = pa[ rand() % pa.size() ];
+
+        auto len1 = calc_path_length( po, p1 );
+        auto len2 = calc_path_length( po, p2 );
+
+        if ( len1 < len2  ) {
+            ret.push_back( p1 );
+        }
+        else {
+            ret.push_back( p2 );
+        }
+    }
+
+    return ret;
+}
 
 
 #endif // TOOLS_H
