@@ -3,7 +3,7 @@
 
 
 #include <vector>
-
+#include <iostream>
 
 //#include "points.h"
 //#include "paths.h"
@@ -16,6 +16,11 @@
 #include <type_traits>
 
 #include <QDebug>
+
+
+
+
+
 
 template <class F>
 void walk_graph( const auto& po, const auto& pa, F && f )
@@ -109,7 +114,25 @@ double calc_path_length( const PointsType & po, const PathsType & pa )
     return ret;
 }
 
-//merge shortest and longest
+
+template <class PointsType, class PathsType>
+auto shortest_path_num( const PointsType& po, const PathsType & pa  )
+{
+    double min_length = std::numeric_limits<double>::max();
+
+    assert(pa.size() > 0);
+    size_t num = 0;
+
+    for ( size_t i = 0; i < pa.size(); ++i ) {
+        auto cur_length = calc_path_length( po, pa[i] );
+        if ( cur_length < min_length  ) {
+            min_length = cur_length;
+            num = i;
+        }
+    }
+    return num;
+}
+
 
 template <class PointsType, class PathsType>
 auto shortest_path( const PointsType& po, const PathsType & pa  )
@@ -151,67 +174,94 @@ auto longest_path( const PointsType& po, const PathsType & pa  )
 
 
 template <class PathType>
-auto simple_crossover( PathType p1, PathType p2 )
+auto simple_crossover(const PathType& p1, const PathType& p2 )
 {
+    srand(time(NULL));
     assert( p1.size() == p2.size() );
+    assert( p1.size() > 1 );
+    PathType ret;
 
-    const size_t size = p1.size() / 2;
-    size_t swaped_count = 0;
-    while (swaped_count < size) {
-        size_t val_pos = 0;
-        bool found = false;
-        for ( auto iter = p2.begin(); iter != p2.end(); ++iter ) {
-            if ( *iter == p1[swaped_count] ) {
-                found = true;
-                std::swap( p1[swaped_count], *iter );
-                ++swaped_count;
-                break;
-            }
-            ++val_pos;
-        }
 
-        assert ( found );
+    using GensType = PathType;
+
+    while ( p1.size() > 1  ) {
+      GensType g(2);
+      std::copy(p1.begin(), p1.begin() + 1, g.begin()  );
+
     }
 
-    return std::make_pair(p1, p2);
+    return ret;
 }
 
 template <class PathsType>
-PathsType crossover( PathsType ret  )
+PathsType crossover( const PathsType& pa, size_t size  )
 {
-    std::reverse( ret.begin(), ret.end() );
-    auto size = ret.size() / 2;
+    PathsType ret;
+    srand(time(NULL));
+
     for ( size_t i = 0; i<size; ++i ) {
-        std::tie( ret[i], ret[i+size] ) = simple_crossover( ret[i] , ret[i + size] );
+        auto id1 = rand() % ret.size();
+        auto id2 = id1;
+        while ( id2 == id1 )
+            id2 = rand() % ret.size();
+
+        std::tie( ret[id1], ret[id2] ) = simple_crossover( ret[i] , ret[i + size] );
     }
     return ret;
 }
 
 
 
-template <class PointsType, class PathsType>
-PathsType fitness( const PointsType& po, const PathsType& pa )
+void print_path(const auto& pa)
 {
-    PathsType ret;
+    std::cout << "[";
+    std::string sep;
+    for ( auto p : pa ) {
+        std::cout << sep << p;
+        sep = " ";
+    }
+    std::cout << "]" << std::endl;
+}
 
-    srand(321);
+void print_paths(const auto& pas)
+{
+    for (const auto pa : pas) {
+        print_path(pa);
+    }
+}
 
-    while ( ret.size() < pa.size() ) {
-        auto p1 = pa[ rand() % pa.size() ];
-        auto p2 = pa[ rand() % pa.size() ];
+
+void print_paths_best(const auto & po, const auto& pas)
+{
+    print_paths(pas);
+    std::cout << "The best is: " << shortest_path_num<decltype(po), decltype(pas)>( po, pas ) << std::endl;
+}
+
+
+template <class PointsType, class PathsType>
+PathsType fitness( const PointsType& po, PathsType ret, size_t rounds )
+{
+    srand(time(NULL));
+
+    for ( size_t i = 0; i<rounds; ++i  ) {
+        auto id1 = rand() % ret.size();
+        auto id2 = rand() % ret.size();
+
+        auto p1 = pa[ id1 ];
+        auto p2 = pa[ id2 ];
 
         auto len1 = calc_path_length( po, p1 );
         auto len2 = calc_path_length( po, p2 );
 
         if ( len1 < len2  ) {
-            ret.push_back( p1 );
+            ret.erase( ret.begin() + id1 );
         }
-        else {
-            ret.push_back( p2 );
+        else if ( len1 > len2 ){
+            ret.erase( ret.begin() + id2 );
         }
     }
-
     return ret;
+
 }
 
 

@@ -24,17 +24,27 @@ void Widget::onRecalc()
 
 void Widget::onRegen()
 {
-    Points points = generate_points<Points>( 10, 300, 300 );
+    const size_t points_num = 20;
+    const size_t paths_num  = 40;
+    const size_t fights_num = poits_num * 0.2;
 
-    Paths offspring = first_age_offspring<Paths>( 200, 10 );
+    Points points = generate_points<Points>( points_num, 300, 300 );
+
+    Paths offspring = first_age_offspring<Paths>( paths_num, points_num );
+
+    print_paths_best( points, offspring );
 
     ui->frame->draw( points, shortest_path(points, offspring) );
 
-    for ( auto i = 0; i<2000; ++i) {
-        offspring = fitness(points, offspring);
+    for ( auto i = 0; i<20; ++i) {
+        auto need_size = offspring.size();
 
-        offspring = crossover(offspring);
+        offspring = fitness(points, offspring, fights_num); //some could be dead after
+
+        offspring = crossover(offspring, need_size);
     }
+
+    print_paths_best( points, offspring );
 
     ui->frameResult->draw( points, shortest_path(points, offspring) );
 }
