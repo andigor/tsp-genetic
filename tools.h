@@ -171,7 +171,7 @@ auto longest_path( const PointsType& po, const PathsType & pa  )
 
 
 template <class PathType>
-auto simple_crossover(auto po, const PathType& p1, const PathType& p2 )
+auto simple_crossover(auto po, const PathType& p1, const PathType& p2, const auto& mutation_probablilty )
 {
 
     assert( p1.size() == p2.size() );
@@ -183,23 +183,67 @@ auto simple_crossover(auto po, const PathType& p1, const PathType& p2 )
         split_point = rand() % (p1.size() - 1);
 
 
-    PathType genome1, genome2;
+    PathType genome1_1, genome1_2, genome2_1, genome2_2;
 
-    genome1.insert( genome1.begin(), p1.begin(), p1.begin() + split_point );
-    genome2.insert( genome2.begin(), p2.begin() + split_point, p2.end() );
+    genome1_1.insert( genome1_1.begin(), p1.begin(), p1.begin() + split_point );
+    genome1_2.insert( genome1_2.begin(), p1.begin() + split_point, p1.end()  );
+
+    genome2_1.insert( genome2_1.begin(), p2.begin(), p2.begin() + split_point );
+    genome2_2.insert( genome2_2.begin(), p2.begin() + split_point, p2.end()  );
+
+
 
 //    std::cout << "----------------------" << std::endl;
 
 //    print_path( genome1 );
 //    print_path( genome2 );
+    {
+        PathType child1, child2;
 
-    ret.insert( ret.end(), genome1.begin(), genome1.end() );
+        child1.insert( child1.end(), genome1_1.begin(), genome1_1.end() );
+        child1.insert( child1.end(), genome2_2.begin(), genome2_2.end());
 
-    ret.insert( ret.end(), genome2.begin(), genome2.end());
+        child2.insert( child2.end(), genome2_1.begin(), genome2_1.end() );
+        child2.insert( child2.end(), genome1_2.begin(), genome1_2.end());
+
+        auto l1 = calc_path_length(po, child1);
+        auto l2 = calc_path_length(po, child2);
+        ret = l1 < l2 ? child1 : child2;
+        assert (ret.size() == p1.size() );
+        assert (ret.size() == p2.size() );
+    }
+
+    auto p1_length = calc_path_length( po, p1 );
+    auto p2_length = calc_path_length( po, p2 );
+
+    auto child_length = calc_path_length( po, ret );
+
+    std::cout << "crossover p1: " << p1_length << " p2: " << p2_length << " child: " << child_length << std::endl;
+
+    if ( child_length > p1_length && child_length > p2_length ) {
+        std::cout << "degradation after crossover comparing to all parents!" << std::endl;
+    }
+    else if ( child_length > p1_length  ) {
+        std::cout << "degradation after crossover comparing to first parent!" << std::endl;
+    }
+    else if ( child_length > p2_length  ) {
+        std::cout << "degradation after crossover comparing to second parent!" << std::endl;
+    }
+
+    if ( rand() % 100 <= mutation_probablilty ) {
+        //auto swap_count = rand() % ret.size();
+        //for ( size_t i = 0 ; i<swap_count; ++i) {
+            auto pos = rand() % ret.size();
+            auto val = rand() % (ret.size() - pos);
+            ret[pos] = val;
+        //}
+        auto l = calc_path_length( po, ret );
+        std::cout << "length after mutation: " << l << std::endl;
+    }
 
     //print_path(ret);
 
-    assert (ret.size() == p1.size() );
+
 
     check_path(po, ret);
 
@@ -207,10 +251,15 @@ auto simple_crossover(auto po, const PathType& p1, const PathType& p2 )
 }
 
 template <class PathsType>
-PathsType crossover( auto po, const PathsType& pa, size_t needed_size  )
+PathsType crossover( auto po, const PathsType& pa, size_t needed_size, auto mutation_perc_prob  )
 {
+    assert(needed_size > 0);
+
     PathsType ret;
 
+    size_t num, len;
+    std::tie(num, len) = shortest_path_num_and_length( po, pa );
+    ret.push_back( pa[num] );
 
     while ( ret.size() <  needed_size) {
         auto id1 = rand() % pa.size();
@@ -218,7 +267,7 @@ PathsType crossover( auto po, const PathsType& pa, size_t needed_size  )
         while ( id2 == id1 )
             id2 = rand() % pa.size();
 
-        auto child = simple_crossover( po, pa[id1] , pa[id2] );
+        auto child = simple_crossover( po, pa[id1] , pa[id2], mutation_perc_prob );
         ret.push_back(child);
     }
     return ret;
@@ -226,7 +275,7 @@ PathsType crossover( auto po, const PathsType& pa, size_t needed_size  )
 
 
 
-void print_path(const auto& pa)
+void print_path(const auto /*&po*/, const auto& pa)
 {
     std::cout << "[";
     std::string sep;
@@ -234,13 +283,13 @@ void print_path(const auto& pa)
         std::cout << sep << p;
         sep = " ";
     }
-    std::cout << "]" << std::endl;
+    std::cout << /*"]" << " " << calc_path_length(po, pa) << */std::endl;
 }
 
-void print_paths(const auto& pas)
+void print_paths(const auto& po, const auto& pas)
 {
     for (const auto pa : pas) {
-        print_path(pa);
+        print_path(po, pa);
     }
 }
 
@@ -257,30 +306,41 @@ void print_paths_with_best(const auto & po, const auto& pas)
 template <class PointsType, class PathsType>
 PathsType fitness( const PointsType& po, PathsType ret, size_t count )
 {
-
-
+    std::cout << "start tournnament" << std::endl;
     for ( size_t i = 0; i<count; ++i  ) {
+        if ( ret.size() <=2  ) {
+            break;
+        }
+
         auto id1 = rand() % ret.size();
-        auto id2 = rand() % ret.size();
+        auto id2 = id1;
+        while ( id2 == id1 )
+            id2 = rand() % ret.size();
 
         auto p1 = ret[ id1 ];
         auto p2 = ret[ id2 ];
 
+        print_path(po, p1);
+        std::cout << "(" << id1 << ") vs (" << id2 << ")"<<std::endl;
+        print_path(po, p2);
+
         auto len1 = calc_path_length( po, p1 );
         auto len2 = calc_path_length( po, p2 );
 
-        if ( len1 < len2  ) {
+        if ( len1 > len2  ) {
+            std::cout << "first (" << id1 << ") killed" << std::endl;
             ret.erase( ret.begin() + id1 );
         }
-        else if ( len1 > len2 ){
+        else if ( len2 > len1 ){
+            std::cout << "second (" << id2 << ") killed" << std::endl;
             ret.erase( ret.begin() + id2 );
         }
-        if ( ret.size() <=2  )
-            break;
     }
 
     for (const auto& p : ret)
         check_path(po, p);
+
+    std::cout << "after tournament " << ret.size() <<" left" << std::endl;
 
     return ret;
 
