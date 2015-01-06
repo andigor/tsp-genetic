@@ -23,12 +23,14 @@
 
 
 template <class F>
-void walk_graph( const auto& po, const auto& pa, F && f )
+void walk_graph( auto po, const auto& pa, F && f )
 {
     for (const auto & p : pa) {
         assert( p < po.size() );
 
         std::forward<F>(f)(po[p]);
+
+        po.erase(po.begin() + p);
     }
 }
 
@@ -54,22 +56,15 @@ auto generate_points(size_t count, auto max_x, auto max_y)
 }
 
 
-void check_path(auto pa)
+void check_path(auto po, auto pa)
 {
-    std::sort( p.begin(), p.end() );
-    auto iter = p.begin();
-    assert( *iter == 0 );
-    auto prev_val = *iter;
-    ++iter;
-    for ( ;iter < check.end(); ++iter) {
-        assert( *iter - 1 == prev_val );
-        ++prev_val;
-    }
-
+    walk_graph(po, pa, [&](auto ){
+        //nothing walk_graph do all the things
+    });
 }
 
 template <class PathsType>
-auto first_age_offspring(size_t count, size_t size)
+auto first_age_offspring(auto po, size_t count, size_t size)
 {
     PathsType ret;
 
@@ -77,9 +72,9 @@ auto first_age_offspring(size_t count, size_t size)
         typename PathsType::value_type pa;
 
         while (pa.size() < size) {
-            auto num = (rand() % (pa.size() + 1));
+            auto num = (rand() % (size - pa.size()));
             pa.push_back(num);
-            check_path(pa);
+            check_path(po, pa);
         }
         ret.push_back(pa);
     }
@@ -118,7 +113,7 @@ double calc_path_length( const PointsType & po, const PathsType & pa )
 
 
 template <class PointsType, class PathsType>
-auto shortest_path_num( const PointsType& po, const PathsType & pa  )
+auto shortest_path_num_and_length( const PointsType& po, const PathsType & pa  )
 {
     double min_length = std::numeric_limits<double>::max();
 
@@ -132,7 +127,7 @@ auto shortest_path_num( const PointsType& po, const PathsType & pa  )
             num = i;
         }
     }
-    return num;
+    return std::make_pair(num, min_length);
 }
 
 
@@ -176,38 +171,55 @@ auto longest_path( const PointsType& po, const PathsType & pa  )
 
 
 template <class PathType>
-auto simple_crossover(const PathType& p1, const PathType& p2 )
+auto simple_crossover(auto po, const PathType& p1, const PathType& p2 )
 {
-    srand(time(NULL));
+
     assert( p1.size() == p2.size() );
     assert( p1.size() > 1 );
     PathType ret;
 
+    auto split_point = rand() % (p1.size() - 1);
+    while ( split_point == 0 )
+        split_point = rand() % (p1.size() - 1);
 
-    using GensType = PathType;
 
-    while ( p1.size() > 1  ) {
-      GensType g(2);
-      std::copy(p1.begin(), p1.begin() + 1, g.begin()  );
+    PathType genome1, genome2;
 
-    }
+    genome1.insert( genome1.begin(), p1.begin(), p1.begin() + split_point );
+    genome2.insert( genome2.begin(), p2.begin() + split_point, p2.end() );
+
+//    std::cout << "----------------------" << std::endl;
+
+//    print_path( genome1 );
+//    print_path( genome2 );
+
+    ret.insert( ret.end(), genome1.begin(), genome1.end() );
+
+    ret.insert( ret.end(), genome2.begin(), genome2.end());
+
+    //print_path(ret);
+
+    assert (ret.size() == p1.size() );
+
+    check_path(po, ret);
 
     return ret;
 }
 
 template <class PathsType>
-PathsType crossover( const PathsType& pa, size_t size  )
+PathsType crossover( auto po, const PathsType& pa, size_t needed_size  )
 {
     PathsType ret;
-    srand(time(NULL));
 
-    for ( size_t i = 0; i<size; ++i ) {
-        auto id1 = rand() % ret.size();
+
+    while ( ret.size() <  needed_size) {
+        auto id1 = rand() % pa.size();
         auto id2 = id1;
         while ( id2 == id1 )
-            id2 = rand() % ret.size();
+            id2 = rand() % pa.size();
 
-        std::tie( ret[id1], ret[id2] ) = simple_crossover( ret[i] , ret[i + size] );
+        auto child = simple_crossover( po, pa[id1] , pa[id2] );
+        ret.push_back(child);
     }
     return ret;
 }
@@ -233,24 +245,26 @@ void print_paths(const auto& pas)
 }
 
 
-void print_paths_best(const auto & po, const auto& pas)
+void print_paths_with_best(const auto & po, const auto& pas)
 {
-    print_paths(pas);
-    std::cout << "The best is: " << shortest_path_num<decltype(po), decltype(pas)>( po, pas ) << std::endl;
+    //print_paths(pas);
+    size_t num, length;
+    std::tie( num, length ) = shortest_path_num_and_length<decltype(po), decltype(pas)>( po, pas );
+    std::cout << "The best is: " <<  num << " with length: "  << length << std::endl;
 }
 
 
 template <class PointsType, class PathsType>
-PathsType fitness( const PointsType& po, PathsType ret, size_t rounds )
+PathsType fitness( const PointsType& po, PathsType ret, size_t count )
 {
-    srand(time(NULL));
 
-    for ( size_t i = 0; i<rounds; ++i  ) {
+
+    for ( size_t i = 0; i<count; ++i  ) {
         auto id1 = rand() % ret.size();
         auto id2 = rand() % ret.size();
 
-        auto p1 = pa[ id1 ];
-        auto p2 = pa[ id2 ];
+        auto p1 = ret[ id1 ];
+        auto p2 = ret[ id2 ];
 
         auto len1 = calc_path_length( po, p1 );
         auto len2 = calc_path_length( po, p2 );
@@ -261,7 +275,13 @@ PathsType fitness( const PointsType& po, PathsType ret, size_t rounds )
         else if ( len1 > len2 ){
             ret.erase( ret.begin() + id2 );
         }
+        if ( ret.size() <=2  )
+            break;
     }
+
+    for (const auto& p : ret)
+        check_path(po, p);
+
     return ret;
 
 }

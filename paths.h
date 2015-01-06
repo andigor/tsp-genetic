@@ -14,6 +14,11 @@ public:
         paths_.push_back(arg);
     }
 
+    template <class ... T>
+    auto insert ( T&& ...  t)
+    {
+        return paths_.insert(std::forward<T>(t)...);
+    }
 
     auto begin()
     {

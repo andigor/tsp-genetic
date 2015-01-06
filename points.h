@@ -44,6 +44,12 @@ public:
         points_.push_back(arg);
     }
 
+    template <class ... T>
+    auto erase( T&& ... t )
+    {
+        return points_.erase( std::forward<T>(t)...  );
+    }
+
 private:
     std::vector<QPoint> points_;
 
