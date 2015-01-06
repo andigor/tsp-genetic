@@ -53,26 +53,35 @@ auto generate_points(size_t count, auto max_x, auto max_y)
     return ret;
 }
 
+
+void check_path(auto pa)
+{
+    std::sort( p.begin(), p.end() );
+    auto iter = p.begin();
+    assert( *iter == 0 );
+    auto prev_val = *iter;
+    ++iter;
+    for ( ;iter < check.end(); ++iter) {
+        assert( *iter - 1 == prev_val );
+        ++prev_val;
+    }
+
+}
+
 template <class PathsType>
 auto first_age_offspring(size_t count, size_t size)
 {
     PathsType ret;
 
-    srand(123);
-
     for (size_t i = 0; i<count; ++i) {
         typename PathsType::value_type pa;
 
-        size_t j = 0;
-        while (j < size) {
-            auto num = rand() % size;
-            if ( std::find( pa.begin(), pa.end(), num ) == pa.end()  ) {
-                pa.push_back(num);
-                ++j;
-            }
+        while (pa.size() < size) {
+            auto num = (rand() % (pa.size() + 1));
+            pa.push_back(num);
+            check_path(pa);
         }
-
-        ret.push_back( pa );
+        ret.push_back(pa);
     }
 
     return ret;
