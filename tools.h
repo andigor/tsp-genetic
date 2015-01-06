@@ -35,15 +35,10 @@ void walk_graph( const auto& po, const auto& pa, F && f )
 template <class PointsType>
 auto generate_points(size_t count, auto max_x, auto max_y)
 {
-
     using Point =  typename PointsType::PointType;
     PointsType ret;
 
-    std::srand(std::time(0));
-
-    size_t i = 0;
-
-    while ( i < count ) {
+    while ( ret.size() < count ) {
         auto new_x = rand() % max_x;
         auto new_y = rand() % max_y;
 
@@ -52,9 +47,7 @@ auto generate_points(size_t count, auto max_x, auto max_y)
 
         if ( iter == ret.end() ) {
             ret.push_back( Point(new_x, new_y) );
-            ++i;
         }
-
     }
 
     return ret;
