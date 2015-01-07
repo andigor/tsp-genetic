@@ -8,7 +8,11 @@ class Path
 {
 public:
     Path();
+
     ~Path();
+
+    using ValueType = std::size_t;
+
     void push_back ( const auto & arg  )
     {
         paths_.push_back(arg);
