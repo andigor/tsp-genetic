@@ -29,5 +29,4 @@ HEADERS  += widget.h \
 
 FORMS    += widget.ui
 
-
 QMAKE_CXXFLAGS += -std=c++1y -Werror
