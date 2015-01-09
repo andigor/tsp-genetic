@@ -15,6 +15,19 @@
 #include <QDebug>
 #include <QtConcurrent/QtConcurrent>
 
+inline auto my_rand()
+{
+    static thread_local drand48_data d;
+    static thread_local bool initialized;
+    if (!initialized) {
+        srand48_r(123, &d);
+        initialized = 1;
+    }
+    long int value;
+    lrand48_r( &d, &value );
+
+    return value;
+}
 
 
 //should be replaced with iterators
@@ -60,8 +73,8 @@ auto generate_points(size_t count, auto max_x, auto max_y)
     PointsType ret;
 
     while ( ret.size() < count ) {
-        auto new_x = rand() % max_x;
-        auto new_y = rand() % max_y;
+        auto new_x = my_rand() % max_x;
+        auto new_y = my_rand() % max_y;
 
         auto iter = std::find_if( ret.begin(), ret.end(), [&](const auto& p){
              return ( p.x() == new_x && p.y() == new_y); } );
@@ -103,7 +116,7 @@ auto first_age_offspring(auto po, size_t count, size_t size)
         typename PathsType::value_type pa;
 
         while (pa.size() < size) {
-            auto num = rand() % size;
+            auto num = my_rand() % size;
             auto iter = std::find( pa.begin(), pa.end(), num );
             if ( iter == pa.end() ) {
                 pa.push_back(num);
@@ -206,16 +219,16 @@ auto longest_path( const PointsType& po, const PathsType & pa  )
 template <class PathType>
 PathType mutate(const auto& po, PathType ret, const auto& mutation_probablilty )
 {
-    if ( rand() % 100 < mutation_probablilty ) {
+    if ( my_rand() % 100 < mutation_probablilty ) {
 //        auto l1 = calc_path_length( po, ret );
-        //auto swap_count = rand() % ret.size();
+        //auto swap_count = my_rand() % ret.size();
         //for ( size_t i = 0 ; i<swap_count; ++i) {
 
 
-        auto pos1 = rand() % ret.size();
+        auto pos1 = my_rand() % ret.size();
         auto pos2 = pos1;
         while ( pos2 == pos1 )
-            pos2 = rand()  % ret.size();
+            pos2 = my_rand()  % ret.size();
 
         std::swap( ret[pos1], ret[pos2] );
 
@@ -289,7 +302,7 @@ auto greedy_crossover2(const PointsType& po, const PathType& p1, const PathType&
 //    std::cout << std::endl;
 
     while ( ret.size() < p1.size() ) {
-        auto num = rand() % p1.size();
+        auto num = my_rand() % p1.size();
         if ( std::find(ret.begin(), ret.end(), num) == ret.end())
             ret.push_back(num);
     }
@@ -332,7 +345,7 @@ auto greedy_crossover2(const PointsType& po, const PathType& p1, const PathType&
 
 
 template <class PathsType>
-PathsType crossover(const auto& po, const PathsType& pa, size_t needed_size, auto mutation_perc_prob   )
+PathsType crossover(const auto& po, const PathsType& pa, size_t needed_size, auto mutation_perc_prob  )
 {
     assert(needed_size > 0);
 
@@ -345,10 +358,10 @@ PathsType crossover(const auto& po, const PathsType& pa, size_t needed_size, aut
     auto func = [&](auto sz){
         PathsType p;
         while ( p.size() < sz ) {
-            auto id1 = rand() % pa.size();
+            auto id1 = my_rand() % pa.size();
             auto id2 = id1;
             while ( id2 == id1 )
-                id2 = rand() % pa.size();
+                id2 = my_rand() % pa.size();
 
             auto child = greedy_crossover2( po, pa[id1] , pa[id2], mutation_perc_prob );
 
@@ -402,10 +415,10 @@ PathsType fitness( const PointsType& po, PathsType ret, size_t count )
             break;
         }
 
-        auto id1 = rand() % ret.size();
+        auto id1 = my_rand() % ret.size();
         auto id2 = id1;
         while ( id2 == id1 )
-            id2 = rand() % ret.size();
+            id2 = my_rand() % ret.size();
 
         auto p1 = ret[ id1 ];
         auto p2 = ret[ id2 ];

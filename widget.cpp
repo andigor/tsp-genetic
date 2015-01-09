@@ -5,17 +5,30 @@
 #include "paths.h"
 //#include "tools.h"
 
-#include <QThreadPool>
+#include <cstdlib>
 
 const size_t points_num = 30;
 const size_t paths_num  = 300;
 const size_t fights_num = paths_num * 0.4;
 const int mutation_perc = 20;
 
+
+const size_t threads_count = 1;
+
 Points points;
 
 Paths offspring, begin;
 
+std::vector<drand48_data> rand_data;
+
+inline void init_defaults()
+{
+    for (size_t i = 0; i<threads_count; ++i) {
+        drand48_data d;
+        srand48_r( 123, &d );
+        rand_data.push_back( d );
+    }
+}
 
 
 
@@ -24,6 +37,8 @@ Widget::Widget(QWidget *parent) :
     ui(new Ui::Widget)
 {
     ui->setupUi(this);
+
+    init_defaults();
 }
 
 Widget::~Widget()
