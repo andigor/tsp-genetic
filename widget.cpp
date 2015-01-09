@@ -7,10 +7,22 @@
 
 #include <cstdlib>
 
+//const size_t points_num = 30;
+//const size_t paths_num  = 300;
+//const size_t fights_num = paths_num * 0.4;
+//const int mutation_perc = 20;
+
 const size_t points_num = 30;
 const size_t paths_num  = 300;
 const size_t fights_num = paths_num * 0.4;
-const int mutation_perc = 20;
+const int mutation_perc = 10;
+
+
+//const size_t points_num = 20;
+//const size_t paths_num  = 200;
+//const size_t fights_num = paths_num * 0.4;
+//const int mutation_perc = 20;
+
 
 
 const size_t threads_count = 1;

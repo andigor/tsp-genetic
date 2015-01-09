@@ -13,7 +13,7 @@
 #include <type_traits>
 
 #include <QDebug>
-#include <QtConcurrent/QtConcurrent>
+#include <future>
 
 inline auto my_rand()
 {
@@ -267,9 +267,7 @@ auto greedy_crossover2(const PointsType& po, const PathType& p1, const PathType&
     auto pairs1 = generate_pairs_from_abs( p1 );
     auto pairs2 = generate_pairs_from_abs( p2 );
 
-
     decltype(pairs1) best_pairs;
-
     for ( const auto & p : pairs1 ) {
         auto iter = std::find_if( pairs2.begin(), pairs2.end(), [&](const auto& arg){
             return arg.first == p.first;
@@ -370,7 +368,21 @@ PathsType crossover(const auto& po, const PathsType& pa, size_t needed_size, aut
         return p;
     };
 
-    auto add = func(needed_size);
+    auto val1 = std::async( std::launch::async, func, (needed_size - 1)/4 ).get();
+    auto val2 = std::async( std::launch::async, func, (needed_size - 1)/4 ).get();
+    auto val3 = std::async( std::launch::async, func, (needed_size - 1)/4 ).get();
+    auto val4 = std::async( std::launch::async, func, (needed_size - 1)/4 ).get();
+
+
+
+    ret.insert( ret.end(), val1.begin(), val1.end() );
+    ret.insert( ret.end(), val2.begin(), val2.end() );
+    ret.insert( ret.end(), val3.begin(), val3.end() );
+    ret.insert( ret.end(), val4.begin(), val4.end() );
+
+
+
+    auto add = func(needed_size - ret.size());
     ret.insert( ret.end(), add.begin(), add.end());
 
     return ret;
